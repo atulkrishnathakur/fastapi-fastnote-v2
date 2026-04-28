@@ -2,48 +2,49 @@ from app.db.config import async_session
 from app.notes.models import Note
 from sqlalchemy import select
 from fastapi import HTTPException
+from app.notes.schemas import NoteCreate, NoteUpdate, NotePatch, NoteOut
 
-async def create_note(title: str, content: str):
+async def create_note(new_note: NoteCreate) -> NoteOut:
     async with async_session() as session:
-        note = Note(title=title,content=content)
+        note = Note(title=new_note.title,content=new_note.content)
         session.add(note)
         await session.commit()
         await session.refresh(note)
         return note
     
-async def get_node(node_id: int):
+async def get_node(node_id: int) -> NoteOut:
     async with async_session() as session:
         note = await session.get(Note,node_id)
         if note is None:
             raise HTTPException(status_code=404, detail="Note not found")
         return note
     
-async def get_all_notes():
+async def get_all_notes() -> list[NoteOut]:
     async with async_session() as session:
         stmt=select(Note)
         notes = await session.scalars(stmt)
         return notes.all()
     
-async def update_note(note_id: int,new_title: str, new_content: str):
+async def update_note(note_id: int, new_note: NoteUpdate) ->NoteOut:
     async with async_session() as session:
         note = await session.get(Note, note_id)
         if note is None:
             raise HTTPException(status_code=404, detail="Note not found")
-        note.title = new_title
-        note.content = new_content
+        note.title = new_note.title
+        note.content = new_note.content
         await session.commit()
         await session.refresh(note)
         return note
     
-async def note_patch(note_id: int,new_title: str|None = None,new_content: str|None = None):
+async def note_patch(note_id: int, new_note: NotePatch) -> NoteOut:
     async with async_session() as session:
         note = await session.get(Note, note_id)
         if note is None:
             raise HTTPException(status_code=404, detail="Note not foud")
-        if new_title is not None:
-            note.title = new_title
-        if new_content is not None:
-            note.content = new_content
+        if new_note.title is not None:
+            note.title = new_note.title
+        if new_note.content is not None:
+            note.content = new_note.content
         await session.commit()
         await session.refresh(note)
         return note
